@@ -1,11 +1,22 @@
+package InlineBot;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.select.Elements;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.AnswerInlineQuery;
+import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.inlinequery.InlineQuery;
+import org.telegram.telegrambots.meta.api.objects.inlinequery.inputmessagecontent.InputTextMessageContent;
 import org.telegram.telegrambots.meta.api.objects.inlinequery.result.InlineQueryResult;
+import org.telegram.telegrambots.meta.api.objects.inlinequery.result.InlineQueryResultArticle;
 import org.telegram.telegrambots.meta.api.objects.inlinequery.result.InlineQueryResultPhoto;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,9 +27,10 @@ public class EsempioBot extends TelegramLongPollingBot {
 
         if(update.hasInlineQuery())
         {
+
+
             InlineQuery inlineQuery = update.getInlineQuery() ;
 
-            List<InlineQueryResult> list = new ArrayList<>() ;
 
             InlineQueryResultPhoto inlineQueryResultPhoto1 = new InlineQueryResultPhoto() ;
             inlineQueryResultPhoto1.setId("1");
@@ -52,17 +64,74 @@ public class EsempioBot extends TelegramLongPollingBot {
             inlineQueryResultPhoto4.setPhotoUrl("https://www.corriere.it/methode_image/2021/09/27/Sport/Foto%20Sport/asinonapoli.JPG") ;
             inlineQueryResultPhoto4.setThumbUrl("https://www.corriere.it/methode_image/2021/09/27/Sport/Foto%20Sport/asinonapoli.JPG") ;
 
+            List<InlineQueryResult> list = new ArrayList<>() ;
+
             list.add(inlineQueryResultPhoto1) ;
             list.add(inlineQueryResultPhoto2) ;
             list.add(inlineQueryResultPhoto3) ;
             list.add(inlineQueryResultPhoto4) ;
 
+
             AnswerInlineQuery answerInlineQuery = new AnswerInlineQuery() ;
             answerInlineQuery.setInlineQueryId(inlineQuery.getId()) ;
             answerInlineQuery.setResults(list);
 
+
+            AnswerInlineQuery answerInlineQuery1 = null ;
+            SendMessage cercato = null ;
+            if(!update.getInlineQuery().getQuery().isEmpty()) {
+                String nomeCercato = update.getInlineQuery().getQuery();
+                //System.out.println(nomeCercato) ;
+
+                String messaggio = null;
+
+                try {
+
+                    Document documento = Jsoup.connect("https://it.wikipedia.org/wiki/" + nomeCercato).get();
+                    Elements elementi = documento.select("div.mw-parser-output p ");
+
+                    final int massimo = 5024;
+                    int tot = 0;
+                    messaggio = "";
+
+                    for (int i = 0; i < elementi.size(); i++) {
+                        tot += elementi.get(i).toString().length();
+                        if (tot <= massimo)
+                            messaggio += elementi.get(i).text();
+                        else break;
+                    }
+                } catch (IOException e) {
+                    // chissà come si puo gestire !
+                    e.printStackTrace();
+                }
+                System.out.println(messaggio);
+
+
+                //articolo 1
+                InlineQueryResultArticle article1 = new InlineQueryResultArticle() ;
+                article1.setUrl("https://it.wikipedia.org/wiki/" + nomeCercato) ;
+                article1.setTitle(nomeCercato);
+                article1.setDescription(messaggio);
+                article1.setId("1");
+                article1.setInputMessageContent(new InputTextMessageContent(messaggio));
+                article1.setThumbUrl("https://it.wikipedia.org/wiki/" + nomeCercato);
+                article1.setThumbHeight(20);
+                article1.setThumbHeight(20);
+
+                //lista di articoli
+                List<InlineQueryResult> articles = new ArrayList<>() ;
+                articles.add(article1) ;
+
+                //risposta1
+                answerInlineQuery1 = new AnswerInlineQuery() ;
+                answerInlineQuery1.setInlineQueryId(update.getInlineQuery().getId());
+                answerInlineQuery1.setResults(articles) ;
+
+            }
+
             try {
-                execute(answerInlineQuery) ;
+                //execute(answerInlineQuery) ;
+                execute(answerInlineQuery1) ;
             } catch (TelegramApiException e) {
                 e.printStackTrace();
             }
